@@ -69,7 +69,7 @@ body.reading #bar{display:none}
 <body>
 <div id="setup">
   <h1>원고 읽어주기</h1>
-  <div style="font-size:12px;color:var(--muted);margin:-2px 0 10px">버전 10-13 16:58</div>
+  <div style="font-size:12px;color:var(--muted);margin:-2px 0 10px">버전 10-13 17:09</div>
   <p>한글 원고(.hwp, .hwpx)나 글(.txt), html 파일을 열면 화면에 글이 나옵니다. 읽기를 누르면 전체화면으로 바뀌고, 읽는 문장을 따라 글이 넘어갑니다. 읽는 중에 화면을 누르면 속도와 목소리를 바꾸는 창이 뜹니다.</p>
   <div id="drop">
     <b>파일을 여기로 끌어 놓거나</b>
@@ -86,6 +86,7 @@ body.reading #bar{display:none}
   <div id="bar">
     <button class="btn ghost" id="back">다른 원고</button>
     <span class="name" id="name"></span>
+    <button class="btn ghost" id="toProm">프롬프터</button>
     <button class="btn" id="read">▶ 읽기</button>
   </div>
 </div>
@@ -655,6 +656,7 @@ addEventListener('keydown',e=>{
 
 /* ---------- 파일 열기 ---------- */
 function openDoc(r,name){
+  lastDoc={name:name||'원고', ms:r.pages&&r.pages.ms||null, pages:r.pages&&r.pages.ms?null:r.pages};
   const paras=toParas(r); build(paras);
   if(!S.some(s=>!s.skip)){$('msg').textContent='읽을 글이 없습니다.';return}
   cur=0; $('name').textContent=name||''; $('setup').style.display='none'; $('reader').style.display='block';
@@ -679,8 +681,19 @@ drop.ondragover=e=>{e.preventDefault();drop.classList.add('over')};
 drop.ondragleave=()=>drop.classList.remove('over');
 drop.ondrop=e=>{e.preventDefault();drop.classList.remove('over');e.dataTransfer.files[0]&&loadFile(e.dataTransfer.files[0])};
 $('usePaste').onclick=()=>{const t=$('paste').value; if(!t.trim()){$('msg').textContent='붙여 넣은 글이 없습니다.';return}
+  lastDoc={name:'붙여 넣은 글', ms:t.replace(/\r\n?/g,'\n').split('\n').map(l=>({runs:[{t:l,hex:'000000'}],pb:false})), pages:null};
   const paras=t.replace(/\r\n?/g,'\n').split(/\n{2,}/).map(b=>[{t:cleanText(b,true),c:'k'}]);
   build(paras); cur=0; $('name').textContent='붙여 넣은 글'; $('setup').style.display='none'; $('reader').style.display='block'; window.scrollTo(0,0)};
+/* ---------- 프롬프터로 넘기기 ---------- */
+// 같은 사이트(patrickdfg.github.io)의 프롬프터와 브라우저 저장 공간을 함께 쓰므로, 원고를 저장해 두고 프롬프터를 연다
+let lastDoc=null;
+$('toProm').onclick=()=>{
+  if(!lastDoc){toast('먼저 원고를 여세요.');return}
+  stopReading();
+  try{localStorage.setItem('readToPrompter',JSON.stringify(Object.assign({v:1,lines:7,t:Date.now()},lastDoc)))}
+  catch(e){toast('원고가 너무 커서 넘기지 못했습니다.',5000);return}
+  location.href='../prom/index.html?from=read';
+};
 window.__state=()=>({cur,playing,total:S.length});
 </script>
 </body>
